@@ -1,0 +1,197 @@
+[
+  {
+    "id": "p7a8f",
+    "name": "Rohanish Raman",
+    "dob": "2006-12-08",
+    "gender": "Male",
+    "contact": "+91 98765 43210",
+    "profile_picture_url": "https://placehold.co/100x100/8B5CF6/FFFFFF?text=RR",
+    "familyBackground": {
+      "fatherName": "Rajesh Patel",
+      "motherName": "Sunita Patel",
+      "maritalStatus": "Unmarried",
+      "address": "123 Gandhi Road, Mumbai, Maharashtra",
+      "familyGeneticProblems": "Father has a history of Type 2 Diabetes and Hypertension.",
+      "smoking": "No",
+      "alcohol": "Socially"
+    },
+    "healthRecords": [
+      {
+        "date": "2025-06-15",
+        "systolic_bp": 125,
+        "diastolic_bp": 82,
+        "pulse": 72,
+        "respiratory_rate": 16,
+        "temperature": 98.6,
+        "doctor_notes": "Routine check-up. Vitals are stable."
+      },
+      {
+        "date": "2025-09-12",
+        "systolic_bp": 142,
+        "diastolic_bp": 91,
+        "pulse": 78,
+        "respiratory_rate": 18,
+        "temperature": 98.7,
+        "doctor_notes": "Patient complains of persistent headaches. BP is in the hypertension stage 1 range."
+      }
+    ],
+    "dentalRecords": [
+      {
+        "date": "2025-07-20",
+        "procedure": "Annual Cleaning & Check-up",
+        "dentist_notes": "Minor plaque buildup detected. Gums are slightly inflamed, indicating early signs of gingivitis."
+      }
+    ],
+    "visionRecords": [
+      {
+        "date": "2025-05-10",
+        "right_eye_sph": "-1.25",
+        "left_eye_sph": "-1.50",
+        "optometrist_notes": "Patient's myopia has slightly progressed since the last visit."
+      }
+    ],
+    "medicalReports": [
+      {
+        "reportId": "dd6ad696-40ac-4e2d-b405-45aa71ac8d99",
+        "dateOfVisit": "2025-09-18",
+        "chiefComplaint": "Persistent headaches and occasional dizziness.",
+        "assessment": "Hypertension Stage 1, likely stress-induced.",
+        "physicalExamination": {
+          "generalAppearance": "Patient appears well-nourished but fatigued.",
+          "vitalSigns": {
+            "bp_systolic": "142",
+            "bp_diastolic": "91",
+            "pulse": "78",
+            "temperature": "98.7"
+          }
+        },
+        "dentalExamination": "No significant findings. Good oral hygiene.",
+        "visionExamination": {
+          "visualAcuity_rightEye": "-1.25",
+          "visualAcuity_leftEye": "-1.50",
+          "fundusExam": "Normal",
+          "otherFindings": "No signs of hypertensive retinopathy."
+        }
+      }
+    ]
+  },
+  {
+    "id": "k2c9x",
+    "name": "Priya Sharma",
+    "dob": "1990-03-22",
+    "gender": "Female",
+    "contact": "+91 91234 56789",
+    "profile_picture_url": "https://placehold.co/100x100/EC4899/FFFFFF?text=PS",
+    "familyBackground": {
+      "fatherName": "Anil Sharma",
+      "motherName": "Meena Sharma",
+      "maritalStatus": "Married",
+      "address": "456 Nehru Street, New Delhi",
+      "familyGeneticProblems": "Mother has a history of hypothyroidism.",
+      "smoking": "No",
+      "alcohol": "No"
+    },
+    "healthRecords": [
+      {
+        "date": "2025-08-01",
+        "systolic_bp": 115,
+        "diastolic_bp": 75,
+        "pulse": 68,
+        "respiratory_rate": 16,
+        "temperature": 98.4,
+        "doctor_notes": "Annual physical exam. All vitals are within the healthy range."
+      }
+    ],
+    "dentalRecords": [
+      {
+        "date": "2025-02-11",
+        "procedure": "Annual Cleaning",
+        "dentist_notes": "Excellent oral hygiene. No cavities or gum issues."
+      }
+    ],
+    "visionRecords": [
+      {
+        "date": "2024-11-20",
+        "right_eye_sph": "20/20",
+        "left_eye_sph": "20/20",
+        "optometrist_notes": "Patient has 20/20 vision. No prescription needed."
+      }
+    ],
+    "medicalReports": []
+  },
+  {
+    "contact": "9624022234",
+    "dentalRecords": [
+      {
+        "date": "2025-09-19",
+        "dentist_notes": "Mild gingivitis\nVision Data: Right eye 6/9, left eye 6/12, mild diabetic changes on fundus\n",
+        "procedure": "Clinical Examination"
+      }
+    ],
+    "dob": "2006-12-08",
+    "familyBackground": {
+      "fatherName": "Dad",
+      "motherName": "Mom",
+      "maritalStatus": "Unmarried",
+      "address": "Surat, Gujarat",
+      "familyGeneticProblems": "none "
+    },
+    "gender": "Male",
+    "healthRecords": [
+      {
+        "date": "2025-09-19",
+        "diastolic_bp": 120,
+        "doctor_notes": "Chief Complaint: Shortness of breath and ankle swelling for 2 weeks\n. Assessment: early congestive heart failure, uncontrolled hypertension, uncontrolled diabetes ",
+        "pulse": 98,
+        "systolic_bp": 150,
+        "temperature": 98.3
+      }
+    ],
+    "id": "p5eb7",
+    "medicalReports": [
+      {
+        "allergies": "none",
+        "assessment": "early congestive heart failure, uncontrolled hypertension, uncontrolled diabetes ",
+        "chiefComplaint": "Shortness of breath and ankle swelling for 2 weeks\n",
+        "dateOfVisit": "2025-09-19",
+        "dentalExamination": "Mild gingivitis\nVision Data: Right eye 6/9, left eye 6/12, mild diabetic changes on fundus\n",
+        "familyHistory": "none",
+        "hpi": "Patient reports progressive breathlessness on exertion, mild chest tightness, and swelling of ankles. No cough or fever.\n",
+        "medications": "Amlodipine 5 mg OD, Metformin ",
+        "pastMedicalHistory": "hypertension (10 years), Type 2 Diabetes (8 years)\n",
+        "physicalExamination": {
+          "generalAppearance": "super fit ",
+          "vitalSigns": {
+            "bp_diastolic": "120",
+            "bp_systolic": "150",
+            "pulse": "98",
+            "respiratoryRate": "96",
+            "temperature": "98.3"
+          }
+        },
+        "reportId": "752b3832-7977-4ec9-bfcf-335afe24f7ea",
+        "socialHistory": {
+          "alcohol": "No",
+          "smoking": "No"
+        },
+        "surgicalHistory": "kidney stone",
+        "visionExamination": {
+          "fundusExam": "mild diabetic changes on fundus",
+          "otherFindings": "nimonia",
+          "visualAcuity_leftEye": "left eye 6/12",
+          "visualAcuity_rightEye": " Right eye 6/9"
+        }
+      }
+    ],
+    "name": "Dhyan Patel",
+    "profile_picture_url": "4",
+    "visionRecords": [
+      {
+        "date": "2025-09-19",
+        "left_eye_sph": "left eye 6/12",
+        "optometrist_notes": "Fundus Exam: mild diabetic changes on fundus. Other Findings: nimonia",
+        "right_eye_sph": " Right eye 6/9"
+      }
+    ]
+  }
+]

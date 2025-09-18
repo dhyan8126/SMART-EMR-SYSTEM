@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synapse EMR</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideInUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .fade-in { animation: fadeIn 0.5s ease-in-out forwards; }
+        .slide-in-up { animation: slideInUp 0.5s ease-in-out forwards; }
+        .loader {
+            border: 4px solid #e5e7eb; 
+            border-top: 4px solid #8b5cf6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        html.dark .loader {
+             border: 4px solid #4a5568; 
+             border-top: 4px solid #8b5cf6;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        html.dark ::-webkit-scrollbar-track { background: #1f2937; }
+        html.dark ::-webkit-scrollbar-thumb { background: #4b5563; }
+        html.dark ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        #login-graphic {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+        }
+    </style>
+    <script>
+        // Set theme on initial load
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark')
+        } else {
+          document.documentElement.classList.remove('dark')
+        }
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 font-sans text-gray-800 dark:text-gray-300 transition-colors duration-300">
+
+    <!-- Login Screen -->
+    <div id="login-screen" class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+        <div id="login-graphic"></div>
+        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-8 rounded-2xl shadow-2xl w-full max-w-sm border dark:border-gray-700 z-10 slide-in-up">
+            <h2 class="text-3xl font-bold text-center text-gray-900 dark:text-white mb-2">Synapse EMR</h2>
+            <p class="text-center text-gray-600 dark:text-gray-400 mb-6">Welcome Back</p>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label for="username" class="block text-gray-600 dark:text-gray-400 text-sm font-semibold mb-2">Username</label>
+                    <input type="text" id="username" value="doctor" class="w-full px-4 py-2 border bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition">
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-gray-600 dark:text-gray-400 text-sm font-semibold mb-2">Password</label>
+                    <input type="password" id="password" value="password123" class="w-full px-4 py-2 border bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition">
+                </div>
+                <p id="login-error" class="text-red-500 text-sm text-center mb-4 hidden"></p>
+                <button type="submit" class="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition duration-300 font-semibold text-lg">Sign In</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Patient Directory Screen -->
+    <div id="patient-directory-screen" class="container mx-auto p-4 md:p-6 hidden">
+        <header class="flex flex-col sm:flex-row justify-between items-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-0">Patient Directory</h1>
+            <div class="flex items-center">
+                <button id="theme-toggle-btn-list" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                    <!-- Icons will be injected by JS -->
+                </button>
+                <button id="add-patient-btn" class="bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 transition duration-300 font-semibold ml-4">Add New Patient</button>
+                <button id="logout-button-list" class="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition duration-300 font-semibold ml-4">Logout</button>
+            </div>
+        </header>
+        <div id="patient-list-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            <!-- Patient cards dynamically inserted here -->
+        </div>
+    </div>
+    
+    <!-- Patient Dashboard Screen -->
+    <div id="dashboard-screen" class="min-h-screen hidden">
+        <div class="flex flex-col md:flex-row w-full">
+            <!-- Sidebar Navigation -->
+            <aside class="w-full md:w-64 bg-white dark:bg-gray-800 p-4 md:p-6 border-b md:border-r border-gray-200 dark:border-gray-700 flex-shrink-0">
+                <div id="patient-profile-summary" class="mb-8">
+                    <!-- Patient summary dynamically inserted here -->
+                </div>
+                 <button id="edit-details-btn" class="w-full text-left flex items-center mb-4 px-3 py-2 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900 rounded-md transition-colors font-semibold">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536l12.232-12.232z"></path></svg>
+                    Edit Details
+                </button>
+                <nav id="dashboard-nav" class="space-y-2">
+                    <!-- Nav items dynamically inserted here -->
+                </nav>
+                <div class="mt-8">
+                    <button id="theme-toggle-btn-dash" class="w-full text-left flex items-center px-3 py-2 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white rounded-md transition-colors">
+                         <!-- Icons will be injected by JS -->
+                    </button>
+                     <button id="back-to-list-btn" class="w-full text-left flex items-center px-3 py-2 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white rounded-md transition-colors mt-2">
+                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h12"></path></svg>
+                        All Patients
+                    </button>
+                    <button id="logout-button-dash" class="w-full text-left flex items-center px-3 py-2 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white rounded-md transition-colors mt-2">
+                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                        Logout
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main id="main-content" class="flex-1 p-4 md:p-8 overflow-y-auto" style="height: 100vh;">
+                <!-- Content for different sections will be injected here -->
+            </main>
+        </div>
+    </div>
+
+    <!-- Add/Edit Patient Modal -->
+    <div id="patient-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden p-4 z-50">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-lg border dark:border-gray-700 relative">
+             <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h2 id="patient-modal-title" class="text-2xl font-bold text-gray-900 dark:text-white mb-6"></h2>
+            <form id="patient-modal-form" class="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                <!-- Form fields injected here -->
+            </form>
+             <div class="mt-6 flex justify-end">
+                <button type="button" id="cancel-modal-btn" class="bg-gray-500 text-white px-5 py-2 rounded-lg hover:bg-gray-600 transition duration-300 font-semibold mr-4">Cancel</button>
+                <button type="submit" form="patient-modal-form" class="bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 transition duration-300 font-semibold">Save Patient</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Modal -->
+    <div id="message-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden p-4 z-[60]">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl w-full max-w-sm border dark:border-gray-700 text-center">
+            <p id="message-modal-text" class="text-lg text-gray-800 dark:text-gray-200 mb-6"></p>
+            <button id="message-modal-close-btn" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition duration-300 font-semibold">OK</button>
+        </div>
+    </div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- CONFIGURATION ---
+    const BACKEND_IP = '127.0.0.1';
+    const API_BASE_URL = `http://${BACKEND_IP}:5000/api`;
+
+    // --- STATE MANAGEMENT ---
+    let currentPatient = null;
+    let charts = {};
+
+    // --- DOM ELEMENT SELECTORS ---
+    const screens = {
+        login: document.getElementById('login-screen'),
+        directory: document.getElementById('patient-directory-screen'),
+        dashboard: document.getElementById('dashboard-screen')
+    };
+    const loginForm = document.getElementById('login-form');
+    const patientListContainer = document.getElementById('patient-list-container');
+    const mainContent = document.getElementById('main-content');
+    const patientProfileSummary = document.getElementById('patient-profile-summary');
+    const dashboardNav = document.getElementById('dashboard-nav');
+    const patientModal = document.getElementById('patient-modal');
+    const patientModalForm = document.getElementById('patient-modal-form');
+    const patientModalTitle = document.getElementById('patient-modal-title');
+    const themeToggleBtns = [document.getElementById('theme-toggle-btn-list'), document.getElementById('theme-toggle-btn-dash')];
+    const messageModal = document.getElementById('message-modal');
+    const messageModalText = document.getElementById('message-modal-text');
+    const messageModalCloseBtn = document.getElementById('message-modal-close-btn');
+
+    // --- THEME ---
+    const sunIcon = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 7.636l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>`;
+    const moonIcon = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>`;
+    
+    function updateThemeToggleIcons() {
+        const isDark = document.documentElement.classList.contains('dark');
+        themeToggleBtns.forEach(btn => btn.innerHTML = isDark ? `Light Mode ${sunIcon}` : `Dark Mode ${moonIcon}`);
+        updateChartDefaults();
+    }
+    
+    function toggleTheme() {
+        document.documentElement.classList.toggle('dark');
+        localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+        updateThemeToggleIcons();
+        if(currentPatient) renderDashboard(); // Re-render to apply chart theme changes
+    }
+    
+    // --- CUSTOM MESSAGE MODAL ---
+    function showMessage(message, isError = false) {
+        messageModalText.textContent = message;
+        messageModal.classList.remove('hidden');
+    }
+    messageModalCloseBtn.addEventListener('click', () => {
+        messageModal.classList.add('hidden');
+    });
+
+    // --- EVENT LISTENERS ---
+    loginForm.addEventListener('submit', handleLogin);
+    document.getElementById('logout-button-list').addEventListener('click', handleLogout);
+    document.getElementById('logout-button-dash').addEventListener('click', handleLogout);
+    document.getElementById('back-to-list-btn').addEventListener('click', showDirectoryScreen);
+    document.getElementById('add-patient-btn').addEventListener('click', () => openPatientModal());
+    document.getElementById('edit-details-btn').addEventListener('click', () => openPatientModal(currentPatient));
+    document.getElementById('close-modal-btn').addEventListener('click', closePatientModal);
+    document.getElementById('cancel-modal-btn').addEventListener('click', closePatientModal);
+    patientModalForm.addEventListener('submit', handlePatientFormSubmit);
+    themeToggleBtns.forEach(btn => btn.addEventListener('click', toggleTheme));
+
+    updateThemeToggleIcons();
+
+    // --- NAVIGATION ---
+    function showScreen(screenName) {
+        Object.values(screens).forEach(screen => {
+            screen.classList.add('hidden');
+            screen.classList.remove('md:flex');
+        });
+        if (screens[screenName]) {
+            screens[screenName].classList.remove('hidden');
+            if (screenName === 'dashboard') screens[screenName].classList.add('md:flex');
+        }
+    }
+
+    // --- AUTHENTICATION & DIRECTORY ---
+    async function handleLogin(e) {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const errorEl = document.getElementById('login-error');
+        errorEl.classList.add('hidden');
+        try {
+            const response = await fetch(`${API_BASE_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const result = await response.json();
+            if (response.ok && result.success) {
+                showDirectoryScreen();
+            } else {
+                errorEl.textContent = result.error || 'Invalid credentials';
+                errorEl.classList.remove('hidden');
+            }
+        } catch (error) {
+            errorEl.textContent = 'Failed to connect to server.';
+            errorEl.classList.remove('hidden');
+        }
+    }
+
+    function handleLogout() {
+        currentPatient = null;
+        showScreen('login');
+    }
+
+    async function showDirectoryScreen() {
+        showScreen('directory');
+        patientListContainer.innerHTML = '<div class="loader col-span-full mx-auto"></div>';
+        try {
+            const response = await fetch(`${API_BASE_URL}/patients`);
+            const patients = await response.json();
+            renderPatientList(patients);
+        } catch (error) {
+            patientListContainer.innerHTML = '<p class="text-red-500 col-span-full">Error loading patient list.</p>';
+        }
+    }
+
+    function renderPatientList(patients) {
+        patientListContainer.innerHTML = (patients || []).map(p => `
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg border dark:border-gray-700 cursor-pointer hover:border-purple-500 transition-all duration-300 transform hover:-translate-y-1" data-patient-id="${p.id}">
+                <img src="${p.profile_picture_url}" alt="${p.name}" class="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-gray-300 dark:border-gray-600">
+                <h3 class="text-lg font-bold text-center text-gray-900 dark:text-white">${p.name}</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 text-center">DOB: ${p.dob}</p>
+            </div>
+        `).join('');
+        patientListContainer.querySelectorAll('[data-patient-id]').forEach(card => {
+            card.addEventListener('click', () => navigateToPatientDashboard(card.dataset.patientId));
+        });
+    }
+
+    // --- PATIENT DASHBOARD ---
+    async function navigateToPatientDashboard(patientId) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/patient/${patientId}`);
+            if (!response.ok) throw new Error('Failed to fetch patient data.');
+            currentPatient = await response.json();
+            showScreen('dashboard');
+            renderDashboard();
+        } catch (error) {
+            showMessage('Failed to load patient data.', true);
+        }
+    }
+
+    function renderDashboard() {
+        renderPatientProfileSummary();
+        createDashboardNav();
+        renderMedicalReportView(); // Default view
+    }
+    
+    function renderPatientProfileSummary() {
+        patientProfileSummary.innerHTML = `
+            <img src="${currentPatient.profile_picture_url}" alt="${currentPatient.name}" class="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-purple-500">
+            <h2 class="text-xl font-bold text-center text-gray-900 dark:text-white">${currentPatient.name}</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400 text-center">ID: ${currentPatient.id}</p>
+        `;
+    }
+    
+    function createDashboardNav() {
+        const navItems = [
+            { id: 'report', name: 'Add Medical Report', icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z' },
+            { id: 'health', name: 'Clinical Health', icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9h0' },
+            { id: 'dental', name: 'Dental Health', icon: 'M15.536 8.464a5 5 0 010 7.072m-2.828-2.828a3 3 0 010 4.243m-4.242 0a3 3 0 01-4.243 0m0-4.242a3 3 0 010-4.243m2.828 2.828a5 5 0 017.072 0' },
+            { id: 'vision', name: 'Vision Health', icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
+            { id: 'family', name: 'Family Background', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21v-2a4 4 0 00-4-4H9.828' },
+            { id: 'ai_care_plan', name: 'AI Care Plan', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+            { id: 'ai_prescription', name: 'Smart AI Prescription', icon: 'M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z' }
+        ];
+        dashboardNav.innerHTML = navItems.map(item => `
+            <button class="w-full text-left flex items-center px-3 py-2 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white rounded-md transition-colors" data-view="${item.id}">
+                <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}"></path></svg>
+                ${item.name}
+            </button>
+        `).join('');
+        
+        dashboardNav.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Highlight active button
+                dashboardNav.querySelectorAll('button').forEach(b => b.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-900', 'dark:text-white'));
+                btn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-900', 'dark:text-white');
+
+                switch (btn.dataset.view) {
+                    case 'report': renderMedicalReportView(); break;
+                    case 'health': renderHealthView(); break;
+                    case 'dental': renderDentalView(); break;
+                    case 'vision': renderVisionView(); break;
+                    case 'family': renderFamilyBackgroundView(); break;
+                    case 'ai_care_plan': renderAiCarePlanView(); break;
+                    case 'ai_prescription': renderAiPrescriptionView(); break;
+                }
+            });
+        });
+         // Activate the first button by default
+        dashboardNav.querySelector('button[data-view="report"]').classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-900', 'dark:text-white');
+    }
+    
+    // --- VIEW RENDERERS ---
+    function renderView(title, content) {
+        mainContent.innerHTML = `<div class="fade-in"><h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-8">${title}</h1>${content}</div>`;
+        Object.values(charts).forEach(chart => chart && chart.destroy());
+        charts = {};
+    }
+
+    function renderHealthView() {
+        const content = `
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border-l-4 border-purple-500">
+                        <h2 class="text-xl font-semibold text-purple-600 dark:text-purple-400 mb-3">AI Clinical Summary</h2>
+                        <div id="summary-content-health" class="text-gray-600 dark:text-gray-400"></div>
+                    </div>
+                </div>
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Vitals Trend</h2>
+                        <div class="chart-container"><canvas id="health-chart"></canvas></div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                         <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Visit History</h2>
+                         <div id="health-history"></div>
+                    </div>
+                </div>
+            </div>`;
+        renderView('Clinical Health', content);
+        generateSummary('health');
+        renderTrendChart('health-chart', currentPatient.healthRecords, ['systolic_bp', 'diastolic_bp'], ['Systolic BP', 'Diastolic BP'], ['#F472B6', '#8B5CF6']);
+        renderVisitHistory('health-history', currentPatient.healthRecords, item => {
+            return `<p>BP: ${item.systolic_bp || 'N/A'}/${item.diastolic_bp || 'N/A'} | Pulse: ${item.pulse || 'N/A'} | Temp: ${item.temperature || 'N/A'}</p><p>${item.doctor_notes || ''}</p>`
+        });
+    }
+    
+    function renderDentalView() {
+         const content = `
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border-l-4 border-purple-500">
+                        <h2 class="text-xl font-semibold text-purple-600 dark:text-purple-400 mb-3">AI Dental Summary</h2>
+                        <div id="summary-content-dental"></div>
+                    </div>
+                </div>
+                <div class="lg:col-span-2 space-y-6">
+                     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                         <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Dental History</h2>
+                         <div id="dental-history"></div>
+                    </div>
+                </div>
+            </div>`;
+        renderView('Dental Health', content);
+        generateSummary('dental');
+        renderVisitHistory('dental-history', currentPatient.dentalRecords, item => `<p class="font-bold">${item.procedure}</p><p>${item.dentist_notes}</p>`);
+    }
+
+    function renderVisionView() {
+        const content = `
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-1 space-y-6">
+                     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border-l-4 border-purple-500">
+                        <h2 class="text-xl font-semibold text-purple-600 dark:text-purple-400 mb-3">AI Vision Summary</h2>
+                        <div id="summary-content-vision"></div>
+                    </div>
+                </div>
+                <div class="lg:col-span-2 space-y-6">
+                     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Myopia Progression (SPH)</h2>
+                        <div class="chart-container"><canvas id="vision-chart"></canvas></div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                         <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Vision History</h2>
+                         <div id="vision-history"></div>
+                    </div>
+                </div>
+            </div>`;
+        renderView('Vision Health', content);
+        generateSummary('vision');
+        renderTrendChart('vision-chart', currentPatient.visionRecords, ['left_eye_sph', 'right_eye_sph'], ['Left Eye (SPH)', 'Right Eye (SPH)'], ['#34D399', '#60A5FA']);
+        renderVisitHistory('vision-history', currentPatient.visionRecords, item => `<p>L: ${item.left_eye_sph} | R: ${item.right_eye_sph}</p><p>${item.optometrist_notes}</p>`);
+    }
+
+    function renderFamilyBackgroundView() {
+        const bg = currentPatient.familyBackground || {};
+        const content = `
+            <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md max-w-2xl mx-auto">
+                <form id="family-background-form" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label class="block text-sm font-medium">Father's Name</label><input type="text" value="${bg.fatherName || ''}" name="fatherName" class="mt-1 w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></div>
+                        <div><label class="block text-sm font-medium">Mother's Name</label><input type="text" value="${bg.motherName || ''}" name="motherName" class="mt-1 w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></div>
+                    </div>
+                    <div><label class="block text-sm font-medium">Marital Status</label><input type="text" value="${bg.maritalStatus || ''}" name="maritalStatus" class="mt-1 w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></div>
+                    <div><label class="block text-sm font-medium">Address</label><textarea name="address" rows="3" class="mt-1 w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md">${bg.address || ''}</textarea></div>
+                    <div><label class="block text-sm font-medium">Family Genetic Problems</label><textarea name="familyGeneticProblems" rows="4" class="mt-1 w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md">${bg.familyGeneticProblems || ''}</textarea></div>
+                    <div class="flex justify-end pt-4"><button type="submit" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">Save Changes</button></div>
+                </form>
+            </div>`;
+        renderView('Family Background', content);
+        document.getElementById('family-background-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const updatedBackground = Object.fromEntries(formData.entries());
+            currentPatient.familyBackground = updatedBackground;
+            await savePatientData();
+        });
+    }
+
+    function renderAiCarePlanView() {
+        const content = `
+            <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md text-center">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Generate AI Care Plan</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-6">Click the button below to generate a comprehensive AI-powered care plan based on the patient's entire medical history.</p>
+                <button id="generate-report-btn" class="bg-purple-600 text-white px-8 py-3 rounded-lg hover:bg-purple-700 transition font-semibold text-lg">Generate Care Plan</button>
+            </div>
+            <div id="ai-report-content" class="mt-8 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md hidden prose dark:prose-invert max-w-none"></div>`;
+        renderView('AI Care Plan', content);
+        document.getElementById('generate-report-btn').addEventListener('click', generateAiCarePlan);
+    }
+    
+    function renderAiPrescriptionView() {
+        const content = `
+            <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md text-center">
+                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Generate Smart AI Medical Prescription</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-6">Analyze the patient's full record to generate a medication suggestion. This is a proof-of-concept and not for clinical use.</p>
+                <button id="generate-prescription-btn" class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition font-semibold text-lg">Generate Prescription Suggestion</button>
+            </div>
+            <div id="ai-prescription-content" class="mt-8"></div>
+        `;
+        renderView('Smart AI Medical Prescription', content);
+        document.getElementById('generate-prescription-btn').addEventListener('click', generateAiPrescription);
+    }
+
+    function renderMedicalReportView() {
+        const today = new Date().toISOString().split('T')[0];
+        const content = `
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md max-w-4xl mx-auto">
+            <form id="medical-report-form" class="space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-b border-gray-200 dark:border-gray-700 pb-6">
+                    <div><h3 class="font-semibold text-lg">Patient: ${currentPatient.name}</h3></div>
+                    <div><label class="block text-sm font-medium">Date of Visit</label><input type="date" name="dateOfVisit" value="${today}" class="mt-1 w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md" required></div>
+                </div>
+                <div class="space-y-6">
+                    <div><label class="font-semibold block mb-2">1. Chief Complaint</label><textarea name="chiefComplaint" rows="2" class="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></textarea></div>
+                    <div><label class="font-semibold block mb-2">2. History of Present Illness (HPI)</label><textarea name="hpi" rows="4" class="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></textarea></div>
+                    <div><label class="font-semibold block mb-2">3. Past Medical History</label><textarea name="pastMedicalHistory" rows="3" class="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></textarea></div>
+                    <div><label class="font-semibold block mb-2">4. Surgical History</label><textarea name="surgicalHistory" rows="2" class="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></textarea></div>
+                    <div><label class="font-semibold block mb-2">5. Family History</label><textarea name="familyHistory" rows="2" class="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md">${currentPatient.familyBackground.familyGeneticProblems || ''}</textarea></div>
+                    <div>
+                        <h3 class="font-semibold mb-2">6. Social History</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label>Smoking:</label> <select name="socialHistory.smoking" class="bg-gray-100 dark:bg-gray-700 p-2 rounded-md"><option>No</option><option>Yes</option></select></div>
+                            <div><label>Alcohol:</label> <select name="socialHistory.alcohol" class="bg-gray-100 dark:bg-gray-700 p-2 rounded-md"><option>No</option><option>Socially</option><option>Regularly</option></select></div>
+                        </div>
+                    </div>
+                    <div><label class="font-semibold block mb-2">7. Allergies</label><textarea name="allergies" rows="2" class="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></textarea></div>
+                    <div><label class="font-semibold block mb-2">8. Medications (Current)</label><textarea name="medications" rows="3" class="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></textarea></div>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-lg mb-4 border-t pt-6 dark:border-gray-700">9. Physical Examination</h3>
+                    <div class="space-y-4">
+                        <div><label>General Appearance:</label><input type="text" name="physicalExamination.generalAppearance" class="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></div>
+                        <div>
+                            <h4 class="font-semibold">Vital Signs:</h4>
+                            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mt-2">
+                                <div><label>BP (Sys):</label><input type="number" name="physicalExamination.vitalSigns.bp_systolic" class="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></div>
+                                <div><label>BP (Dia):</label><input type="number" name="physicalExamination.vitalSigns.bp_diastolic" class="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></div>
+                                <div><label>Pulse:</label><input type="number" name="physicalExamination.vitalSigns.pulse" class="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></div>
+                                <div><label>Resp. Rate:</label><input type="number" name="physicalExamination.vitalSigns.respiratoryRate" class="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></div>
+                                <div><label>Temp:</label><input type="number" step="0.1" name="physicalExamination.vitalSigns.temperature" class="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                 <div>
+                    <h3 class="font-semibold text-lg mb-4 border-t pt-6 dark:border-gray-700">10. Dental Examination</h3>
+                    <textarea name="dentalExamination" rows="3" class="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></textarea>
+                 </div>
+                 <div>
+                    <h3 class="font-semibold text-lg mb-4 border-t pt-6 dark:border-gray-700">11. Vision Examination</h3>
+                    <div class="space-y-4">
+                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label>Visual Acuity (Right):</label><input type="text" name="visionExamination.visualAcuity_rightEye" class="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></div>
+                            <div><label>Visual Acuity (Left):</label><input type="text" name="visionExamination.visualAcuity_leftEye" class="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></div>
+                         </div>
+                        <div><label>Fundus Exam:</label><input type="text" name="visionExamination.fundusExam" class="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></div>
+                        <div><label>Other Findings:</label><textarea name="visionExamination.otherFindings" rows="2" class="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></textarea></div>
+                    </div>
+                 </div>
+                <div>
+                     <h3 class="font-semibold text-lg mb-4 border-t pt-6 dark:border-gray-700">12. Assessment / Diagnosis</h3>
+                     <textarea name="assessment" rows="4" class="w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md"></textarea>
+                </div>
+                <div class="flex justify-end pt-6">
+                    <button type="submit" class="bg-purple-600 text-white px-8 py-3 rounded-lg hover:bg-purple-700 transition font-semibold">Save Medical Report</button>
+                </div>
+            </form>
+        </div>
+        `;
+        renderView('New Medical Report', content);
+        document.getElementById('medical-report-form').addEventListener('submit', handleMedicalReportSubmit);
+    }
+    
+    // --- DATA & CHART HELPERS ---
+    function updateChartDefaults() {
+        const isDark = document.documentElement.classList.contains('dark');
+        Chart.defaults.color = isDark ? '#a0aec0' : '#4b5563';
+        Chart.defaults.borderColor = isDark ? '#4a5568' : '#d1d5db';
+    }
+    
+    async function generateSummary(section) {
+        const summaryDiv = document.getElementById(`summary-content-${section}`);
+        summaryDiv.innerHTML = '<div class="loader mx-auto"></div>';
+        try {
+            const response = await fetch(`${API_BASE_URL}/patient/${currentPatient.id}/summary`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ section })
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                 throw new Error(data.error || 'Failed to load summary');
+            }
+            summaryDiv.innerHTML = `<p class="text-sm">${data.summary.replace(/\n/g, '<br>')}</p>`;
+        } catch (error) {
+             summaryDiv.innerHTML = `<p class="text-red-500 text-sm">Could not load summary. Please try again.</p><p class="text-xs text-gray-400 mt-2">${error.message}</p>`;
+        }
+    }
+    
+    function renderVisitHistory(containerId, records, formatter) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = (records || []).slice().reverse().map(item => `
+            <div class="border-l-2 border-gray-300 dark:border-gray-700 pl-4 py-3 mb-3 last:mb-0">
+                <p class="font-semibold text-gray-800 dark:text-gray-300">Date: ${item.date}</p>
+                <div class="text-sm text-gray-600 dark:text-gray-400">${formatter(item)}</div>
+            </div>
+        `).join('') || '<p class="text-gray-500">No records found.</p>';
+    }
+
+    function renderTrendChart(canvasId, records, dataKeys, labels, colors) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        const chartLabels = (records || []).map(r => r.date);
+        const datasets = dataKeys.map((key, i) => ({
+            label: labels[i],
+            data: (records || []).map(r => parseFloat(r[key])).filter(v => !isNaN(v)),
+            borderColor: colors[i],
+            tension: 0.2,
+            pointBackgroundColor: colors[i],
+            pointRadius: 4,
+            fill: false
+        }));
+        
+        charts[canvasId] = new Chart(ctx, {
+            type: 'line',
+            data: { labels: chartLabels, datasets: datasets },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    async function generateAiCarePlan() {
+        const reportContentDiv = document.getElementById('ai-report-content');
+        reportContentDiv.classList.remove('hidden');
+        reportContentDiv.innerHTML = '<div class="loader mx-auto"></div>';
+        try {
+            const response = await fetch(`${API_BASE_URL}/patient/${currentPatient.id}/ai_care_plan`);
+            const data = await response.json();
+             if (!response.ok) {
+                throw new Error(data.error || 'Failed to generate plan.');
+            }
+            let html = data.care_plan
+                .replace(/### (.*)/g, '<h3 class="text-xl font-bold text-purple-600 dark:text-purple-400 mt-4 mb-2">$1</h3>')
+                .replace(/\*\*(.*):\*\*/g, '<strong class="text-gray-900 dark:text-white">$1:</strong>')
+                .replace(/^- (.*)/gm, '<li class="ml-5 list-disc">$1</li>');
+            reportContentDiv.innerHTML = `<ul>${html}</ul>`;
+        } catch (error) {
+            reportContentDiv.innerHTML = `<p class="text-red-500">Could not generate AI care plan: ${error.message}</p>`;
+        }
+    }
+
+    async function generateAiPrescription() {
+        const prescriptionContentDiv = document.getElementById('ai-prescription-content');
+        prescriptionContentDiv.innerHTML = `
+            <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
+                <div class="loader mx-auto"></div>
+            </div>`;
+        try {
+            const response = await fetch(`${API_BASE_URL}/patient/${currentPatient.id}/ai_prescription`);
+            const data = await response.json();
+             if (!response.ok) {
+                throw new Error(data.error || 'Failed to generate prescription.');
+            }
+            let html = data.prescription
+                .replace(/### (.*)/g, '<h3 class="text-xl font-bold text-blue-600 dark:text-blue-400 mt-4 mb-2">$1</h3>')
+                .replace(/\*\*(.*):\*\*/g, '<strong class="text-gray-900 dark:text-white">$1:</strong>')
+                .replace(/^- (.*)/gm, '<li class="ml-5 list-disc">$1</li>');
+
+            prescriptionContentDiv.innerHTML = `
+                <div class="bg-yellow-100 dark:bg-yellow-900 border-l-4 border-yellow-500 text-yellow-800 dark:text-yellow-200 p-4 rounded-md mb-6" role="alert">
+                    <p class="font-bold">Disclaimer</p>
+                    <p>This AI-generated prescription is for informational and demonstrative purposes only. It is NOT a substitute for professional medical advice, diagnosis, or treatment. Always consult with a qualified healthcare provider.</p>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md prose dark:prose-invert max-w-none">
+                    <ul>${html}</ul>
+                </div>
+            `;
+        } catch (error) {
+             prescriptionContentDiv.innerHTML = `
+                <div class="bg-red-100 dark:bg-red-900 border-l-4 border-red-500 text-red-700 dark:text-red-200 p-4" role="alert">
+                    <p class="font-bold">Error</p>
+                    <p>${error.message}</p>
+                </div>`;
+        }
+    }
+    
+    // --- FORM SUBMISSION & DATA SAVING ---
+    async function handleMedicalReportSubmit(e) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const reportData = {};
+        for (let [key, value] of formData.entries()) {
+            const keys = key.split('.');
+            let temp = reportData;
+            keys.forEach((k, i) => {
+                if (i === keys.length - 1) { temp[k] = value; } 
+                else {
+                    temp[k] = temp[k] || {};
+                    temp = temp[k];
+                }
+            });
+        }
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/patient/${currentPatient.id}/add_medical_report`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(reportData)
+            });
+            if (!response.ok) throw new Error('Failed to save report');
+            
+            showMessage('Medical report saved successfully! All sections have been updated.');
+            navigateToPatientDashboard(currentPatient.id);
+        } catch (error) {
+            showMessage('Error saving medical report.', true);
+            console.error(error);
+        }
+    }
+
+    function openPatientModal(patientToEdit = null) {
+        let isEditing = patientToEdit !== null;
+        patientModalTitle.textContent = isEditing ? 'Edit Patient Details' : 'Add New Patient';
+        const patientForForm = isEditing ? patientToEdit : {};
+        const fields = {
+            name: 'Full Name', dob: 'Date of Birth', gender: 'Gender',
+            contact: 'Contact', profile_picture_url: 'Profile Picture URL'
+        };
+        patientModalForm.innerHTML = Object.entries(fields).map(([key, label]) => `
+            <div>
+                <label class="block text-sm font-medium text-gray-600 dark:text-gray-400">${label}</label>
+                <input type="${key === 'dob' ? 'date' : 'text'}" name="${key}" value="${patientForForm[key] || ''}" class="mt-1 w-full bg-gray-100 dark:bg-gray-700 p-2 rounded-md" required>
+            </div>
+        `).join('');
+        patientModalForm.dataset.mode = isEditing ? 'edit' : 'add';
+        patientModal.classList.remove('hidden');
+    }
+
+    function closePatientModal() { patientModal.classList.add('hidden'); }
+    
+    async function handlePatientFormSubmit(e) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const patientData = Object.fromEntries(formData.entries());
+        const mode = e.target.dataset.mode;
+
+        if (mode === 'edit') {
+            Object.assign(currentPatient, patientData);
+            await savePatientData();
+            renderPatientProfileSummary();
+        } else if (mode === 'add') {
+            try {
+                const response = await fetch(`${API_BASE_URL}/patient/add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(patientData)
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Failed to add patient.');
+                showMessage('Patient added successfully!');
+                showDirectoryScreen(); // Refresh the list
+            } catch (error) {
+                showMessage(`Error adding patient: ${error.message}`, true);
+            }
+        }
+        closePatientModal();
+    }
+    
+    async function savePatientData() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/patient/${currentPatient.id}/update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(currentPatient)
+            });
+            if (!response.ok) throw new Error('Failed to save');
+            showMessage('Patient data saved successfully!');
+        } catch (error) {
+            showMessage('Error saving patient data.', true);
+            console.error(error);
+        }
+    }
+
+    // --- LOGIN SCREEN 3D GRAPHIC ---
+    function initLoginGraphic() {
+        const container = document.getElementById('login-graphic');
+        if (!container) return;
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCnt = 5000;
+        const posArray = new Float32Array(particlesCnt * 3);
+        for (let i = 0; i < particlesCnt * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 5;
+        }
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        
+        const particlesMaterial = new THREE.PointsMaterial({
+            size: 0.005,
+            color: 0x8b5cf6,
+        });
+        const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particlesMesh);
+
+        camera.position.z = 2;
+
+        let mouseX = 0;
+        let mouseY = 0;
+        document.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
+        
+        const clock = new THREE.Clock();
+        const animate = () => {
+            requestAnimationFrame(animate);
+            const elapsedTime = clock.getElapsedTime();
+            particlesMesh.rotation.y = -0.1 * elapsedTime;
+            particlesMesh.rotation.x = -0.1 * elapsedTime;
+            
+            // Parallax effect
+            camera.position.x += (mouseX - camera.position.x) * 0.01;
+            camera.position.y += (mouseY - camera.position.y) * 0.01;
+
+            renderer.render(scene, camera);
+        };
+        animate();
+
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+    }
+
+    initLoginGraphic();
+});
+</script>
+</body>
+</html>
+
